@@ -17,11 +17,11 @@ colnames(population) = c("dep",
 
 # NAs verification
 ## tmax
-x = as.numeric(data$tmax)
-length(which(is.na(x) == T))
+# x = as.numeric(data$tmax)
+# length(which(is.na(x) == T))
 ## tmin
-x = as.numeric(data$tmin)
-length(which(is.na(x) == T))
+# x = as.numeric(data$tmin)
+# length(which(is.na(x) == T))
 
 # Converting date formats 
 data = data %>% 
@@ -40,16 +40,16 @@ weak = data.frame(date = unique(data$date),
     weak = rep(1:(length(unique(data$date))/7), each = 7))
 datax = left_join(data, weak, by = "date")
 # Departments
-unique(datax$station) %>%
-    View()
+# unique(datax$station) %>%
+#     View()
 # Regroup cities by department
-length(unique(datax$station))
+# length(unique(datax$station))
 comm = read.delim("./data/communes.txt")
 comm = comm %>% 
     select(nreg = REG, ndep = DEP, ville = NCC)
-comm %>% 
-    arrange(ville) %>%
-    View()
+# comm %>% 
+#     arrange(ville) %>%
+#     View()
 # Station names verif
 datax$station2 = str_replace(datax$station, " / [[:graph:]]*", "")
 datax$station2 = str_replace(datax$station2, "/[[:graph:]]*", "")
@@ -58,18 +58,18 @@ datax$station2 = str_replace(datax$station2, "LA ", "")
 datax$station2 = str_replace(datax$station2, "LE ", "")
 datax$station2 = str_replace(datax$station2, "LES ", "")
 datax$station2 = str_replace(datax$station2, " ", "-")
-unique(datax$station2) %>%
-    View() # Insufficient
+# unique(datax$station2) %>%
+#     View() # Insufficient
 # Join
 datay = left_join(datax, comm, by = c("station2" = "ville"))
 # Verify
-summary(datay$ndep) # Nearly half NAs
+# summary(datay$ndep) # Nearly half NAs
 # Join population
-head(population)
+# head(population)
 population[1:9, 2] = c("01", "02", "03",
     "04", "05", "06", "07", "08", "09")
 dataX = left_join(datay, population, by = "ndep")
-View(dataX)
+# View(dataX)
 # Means by dep
 # Clear uneq
 dataX = dataX %>% 
@@ -77,20 +77,28 @@ dataX = dataX %>%
 totalpop = population %>% 
     filter(ndep %in% unique(dataX$ndep)) %>% 
     summarise(total = sum(population))
-totalpop[1,1]
+totalpop = totalpop[1,1]
 ## totalpop = population[97,3]
 # Means
 dataS = dataX %>% 
-    group_by(ndep, date) %>% 
+    group_by(date, ndep) %>% 
     summarise(tmax = mean(tmax, na.rm = T),
         tmin = mean(tmin, na.rm = T),
         weak = first(weak),
-        share_pop = mean(population, na.rm = T)/totalpop) %>% 
+        share_pop = mean(population, na.rm = T)/totalpop) 
+        
+dataC = dataS %>% 
     ungroup() %>% 
     group_by(weak) %>% 
     summarise(tmax = mean(tmax*share_pop, na.rm = T),
         tmin = mean(tmin*share_pop, na.rm = T))
-View(dataS)
+View(round(dataS,4))
 # Mean temperature
 dataXS = dataS %>% 
     mutate()
+
+# dataS %>% 
+#     group_by(weak) %>%
+#     summarise(sum(share_pop))
+
+# data = read.xlsx("./data/derived_data.xlsx", sheet = 7, start = 1)
