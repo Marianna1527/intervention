@@ -5,6 +5,7 @@ require(tidyverse)
 require(openxlsx)
 require(jarvis)
 require(ggpubr)
+require(lmtest)
 
 # Loading data 
 data = read.xlsx("./data/boissons.xlsx")
@@ -171,4 +172,55 @@ data %>%
 
 # Modèlisation
     # Comment introduire la saisonnalité une fois calculée ?
-    
+# Le modèle simple
+ols = lm(Ventes.boisson.A ~ 0 + 
+    Promotion.parfum.1.gratuit +
+    Mise.en.avant.parfum.1 +
+    GRP.TV + GRP.Presse + 
+    Températures +
+    saison, data = data)
+summary(ols)
+    # Promotions et TV n'ont aucun effet (ça s'explique pourquoi une baisse dans utilisation de TV)
+car::vif(ols)
+    # Multicollinéarité entre Meteo et S
+anova(ols)
+    # t-stats significatives
+shapiro.test(ols$resid) 
+    # Normality
+acf(ols$resid)
+dwtest(ols)
+    # On observe une autocorrelation dans les résidus
+
+# Gestion de l'endogènèité (???)
+# Correction pour l'écart de la temperature moyenne
+data = data %>% 
+    mutate(deltaTemp = Températures - Température.moyenne.saisonnière,
+        TempSup05 = as.numeric(deltaTemp > 0.5 | -0.5 > deltaTemp),
+        TempSup1 = as.numeric(deltaTemp > 1 | -1 > deltaTemp),
+        TempSup2 = as.numeric(deltaTemp > 2 | -2 > deltaTemp),
+        TempSup3 = as.numeric(deltaTemp > 3 | -3 > deltaTemp),
+        TempsSup = as.numeric(deltaTemp > 0),
+        Temps18 = as.numeric(Températures > 18),
+        Temps19 = as.numeric(Températures > 19),
+        Temps20 = as.numeric(Températures > 20))
+# Le modèle résultant
+ols2 = lm(Ventes.boisson.A ~ 0 + 
+    Promotion.parfum.1.gratuit +
+    Mise.en.avant.parfum.1 +
+    GRP.Presse + 
+    deltaTemp +
+    # TempsSup +
+    # MEA.CC.boisson.1 + 
+    # MEA.CC.boisson.2 +
+    # MEA.CC.boisson.3 +
+    saison + t, data = data)
+summary(ols2)
+plot(ols2)
+car::vif(ols2)
+    # No Multicollinearity
+# plot(ols2$fit, ols2$resid)
+shapiro.test(ols2$resid)
+    # No normality in residuals
+acf(ols2$resid)
+dwtest(ols2)
+    # Autocollinearity
